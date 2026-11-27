@@ -42,3 +42,13 @@ Imagery and Calistoga/Inter fonts are downloaded from the public reference site.
 - inter-bold.woff2: https://framerusercontent.com/assets/9Nu9BRcGkRrLnJCGqVdSUXJt2Ig.woff2
 - burger.webp: https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1200&q=85
 
+
+## Reference motion ingredients
+
+- ingredient-pepper.webp: https://framerusercontent.com/images/VCnnsUZEiCbzlhmIH7Y8ZYSpaA.png
+- ingredient-leaf.webp: https://framerusercontent.com/images/Zt0rn2nHx1FgaxQwQZls9YLbVs.png
+- ingredient-mushroom.webp: https://framerusercontent.com/images/CicOFYwqy06kkrtQ5fmwe8BRo.png
+- ingredient-chilli.webp: https://framerusercontent.com/images/T51LfrJWjdIfxqz946LMkeM8.png
+- ingredient-basil.webp: https://framerusercontent.com/images/dzJQBNXTPrj85SNmAaSaWDiVeTk.png
+- ingredient-olive.webp: https://framerusercontent.com/images/8R2uSDjBAGxNlPizm02oUFuzGU.png
+

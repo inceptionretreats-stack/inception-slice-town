@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { burgerGroups, burgerPicks, money, pizzaGroups, pizzaPicks } from './menu.js';
+import { useHeroMotion, useReferenceMotion } from './useReferenceMotion.js';
 
 const asset = name => `/assets/${name}`;
 const galleryAlts = ['Friends sharing a pizza', 'A night out with pizza and friends', 'Fresh pizza ready to share', 'A golden cheese pull', 'Pizza straight from the oven', 'Good times around the table'];
@@ -38,22 +39,28 @@ function Header({ mode, onMode }) {
 
 function Hero({ mode }) {
   const pizza = mode === 'pizza';
-  return <section id="home" data-nav-section className={`hero ${pizza ? '' : 'burger-hero'}`}>
+  const hero = useRef(null);
+  useHeroMotion(hero, mode);
+  return <section id="home" data-nav-section className={`hero ${pizza ? '' : 'burger-hero'}`} ref={hero}><div className="hero-stage">
     <h1 className="hero-copy"><span>Bite it. Love it. Repeat without any pause.</span><span>{pizza ? 'Hot slices. Big bites. No regrets forever more.' : 'Big burgers. Big bites. No regrets forever more.'}</span></h1>
-    {pizza ? <div className="hero-art"><img className="whole-pizza" src={asset('hero-pizza.webp')} alt="A freshly baked pizza with pepperoni, olives and peppers" fetchPriority="high" width="1920" height="729" /><img className="pizza-hand" src={asset('hero-hand.webp')} alt="A hand reaching in for a slice" width="1920" height="729" /></div>
+    {pizza ? <div className="hero-art"><div className="hero-entrance" key={mode}><img className="whole-pizza" src={asset('hero-pizza.webp')} alt="A freshly baked pizza with pepperoni, olives and peppers" fetchPriority="high" width="1920" height="729" /><img className="pizza-hand" src={asset('hero-hand.webp')} alt="A hand reaching in for a slice" width="1920" height="729" /></div></div>
       : <img className="hero-burger" src={asset('burger.webp')} alt="A freshly grilled cheeseburger with tomato and lettuce" width="1000" height="1000" />}
-  </section>;
+    <img className="ingredient hero-pepper" src={asset('ingredient-pepper.webp')} alt="" width="395" height="434" />
+    <img className="ingredient hero-leaf" src={asset('ingredient-leaf.webp')} alt="" width="440" height="388" />
+  </div></section>;
 }
 
 function Story({ mode, onOrder }) {
   return <section id="about-us" data-nav-section className="story checker orange-check">
+    <img className="ingredient story-mushroom" src={asset('ingredient-mushroom.webp')} alt="" loading="lazy" />
+    <img className="ingredient story-chilli" src={asset('ingredient-chilli.webp')} alt="" loading="lazy" />
     <div className="story-copy">
       <h2>Where Every Perfect<br />{mode === 'pizza' ? 'Slice' : 'Bite'} Tells a Story</h2>
       <p>{mode === 'pizza' ? 'Our ingredients are fresh, our ovens are hot, and our team is fired up to serve you the best pies in town. From classic Margheritas to loaded flavor bombs, every pizza is made with intention, fun, and a little pizza magic. We believe pizza is more than food, it’s a celebration.' : 'Fresh ingredients, toasted buns, and big flavours. From our Town Classic to a spicy paneer favourite, every burger is made for good food and great company. Pull up a chair, bring your appetite, and make yourself at home.'}</p>
       <button className="pill story-order" onClick={onOrder}>Order your favourites <Arrow /></button>
     </div>
     <div className="photo-collage" aria-label="A taste of life at Slice Town">
-      {galleryAlts.map((alt, index) => <figure key={alt}><img src={asset(`gallery-${index + 1}.webp`)} alt={alt} loading="lazy" width="360" height="400" /></figure>)}
+      <div className="collage-track">{[0, 1].map(copy => <div className="collage-set" key={copy} aria-hidden={copy === 1 ? true : undefined}>{galleryAlts.map((alt, index) => <figure key={alt}><img src={asset(`gallery-${index + 1}.webp`)} alt={copy === 0 ? alt : ''} loading="lazy" width="360" height="400" /></figure>)}</div>)}</div>
     </div>
   </section>;
 }
@@ -72,6 +79,8 @@ function MenuGroup({ group, onAdd }) {
 function FullMenu({ mode, onAdd }) {
   const groups = mode === 'pizza' ? pizzaGroups : burgerGroups;
   return <section id="menu" data-nav-section className="full-menu checker white-check">
+    <img className="ingredient menu-basil" src={asset('ingredient-basil.webp')} alt="" loading="lazy" />
+    <img className="ingredient menu-olive" src={asset('ingredient-olive.webp')} alt="" loading="lazy" />
     <div className="section-inner"><h2>{mode === 'pizza' ? 'Pizza' : 'Burger'} Lovers Choice</h2>
       <div className="menu-columns"><div><MenuGroup group={groups[0]} onAdd={onAdd} /><MenuGroup group={groups[2]} onAdd={onAdd} /></div><div><MenuGroup group={groups[1]} onAdd={onAdd} /><MenuGroup group={groups[3]} onAdd={onAdd} /></div></div>
       <p className="menu-hint">Pick a price to add a favourite to your order preview.</p>
@@ -161,7 +170,7 @@ function Locations({ onOrder }) {
 }
 
 function Footer({ onOrder }) {
-  return <footer className="footer checker white-check"><button className="footer-marquee" onClick={onOrder} aria-label="Build an order preview"><span>Order – <b>Slice Town</b></span><span aria-hidden="true">Order – <b>Slice Town</b></span><span aria-hidden="true">Order – <b>Slice Town</b></span></button>
+  return <footer className="footer checker white-check"><button className="footer-marquee" onClick={onOrder} aria-label="Order from Slice Town — build a preview"><span className="footer-marquee-track">{[0, 1].map(copy => <span className="footer-marquee-set" key={copy} aria-hidden={copy === 1 ? true : undefined}>{[0, 1, 2].map(index => <span key={index}>Order – <b>Slice Town</b></span>)}</span>)}</span></button>
     <a href="#home" className="footer-logo" aria-label="Back to Slice Town home"><img src={asset('logo.svg')} alt="Slice Town" width="150" height="150" /></a><h2>Ready to Grab a Slice of Happiness?</h2><div className="footer-actions"><a className="pill selected" href="#reservation">Reserve a Table</a><a className="pill" href="#menu">View Menu</a></div><div className="footer-bottom"><p>Slice Town · A restaurant website demo</p><a href="#home">Back to top ↑</a><p>Orders and reservations are local previews.</p></div>
   </footer>;
 }
@@ -171,7 +180,7 @@ function OrderDrawer({ open, onClose, cart, onChange, onAdd, picks }) {
   const [fulfilment, setFulfilment] = useState('Pickup');
   const [ready, setReady] = useState(false);
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  useEffect(() => { if (open && !dialog.current.open) { setReady(false); dialog.current.showModal(); } else if (!open && dialog.current.open) dialog.current.close(); }, [open]);
+  useEffect(() => { if (open && !dialog.current.open) { setReady(false); dialog.current.showModal(); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) dialog.current.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }], { duration: 500, easing: 'cubic-bezier(.22,1,.36,1)' }); } else if (!open && dialog.current.open) dialog.current.close(); }, [open]);
   function change(item, delta) { setReady(false); onChange(item, delta); }
   return <dialog ref={dialog} className="order-drawer" onCancel={onClose} onClose={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="drawer-content"><header className="drawer-header"><div><p>Hot slices. Big bites.</p><h2>Your order</h2></div><button className="icon-button" aria-label="Close order" onClick={onClose}>×</button></header>
     <div className="fulfilment" aria-label="Order type">{['Pickup', 'Delivery'].map(type => <button key={type} aria-pressed={fulfilment === type} onClick={() => { setFulfilment(type); setReady(false); }}>{type}</button>)}</div>
@@ -185,6 +194,7 @@ function OrderDrawer({ open, onClose, cart, onChange, onAdd, picks }) {
 
 export default function App() {
   const [mode, setMode] = useState('pizza');
+  useReferenceMotion(mode);
   const [cart, setCart] = useState([]);
   const [orderOpen, setOrderOpen] = useState(false);
   function add(item, reveal = true) {
@@ -196,5 +206,5 @@ export default function App() {
     setCart(current => current.map(entry => entry.key === item.key ? { ...entry, quantity: entry.quantity + delta } : entry).filter(entry => entry.quantity > 0));
   }
   const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-  return <><a className="skip-link" href="#menu">Skip to menu</a><Header mode={mode} onMode={setMode} /><main><Hero mode={mode} /><Story mode={mode} onOrder={() => setOrderOpen(true)} /><FullMenu mode={mode} onAdd={add} /><TopPicks mode={mode} onAdd={add} /><Reservation /><Testimonials /><Locations onOrder={() => setOrderOpen(true)} /></main><Footer onOrder={() => setOrderOpen(true)} /><button className="pill floating-order" onClick={() => setOrderOpen(true)} aria-haspopup="dialog">Order Now <span className="order-count" aria-label={count ? `${count} items in order` : undefined}>{count || '+'}</span></button><OrderDrawer open={orderOpen} onClose={() => setOrderOpen(false)} cart={cart} onChange={change} onAdd={item => add(item, false)} picks={mode === 'pizza' ? pizzaPicks : burgerPicks} /></>;
+  return <><a className="skip-link" href="#menu">Skip to menu</a><Header mode={mode} onMode={setMode} /><main><Hero mode={mode} /><Story mode={mode} onOrder={() => setOrderOpen(true)} /><FullMenu mode={mode} onAdd={add} /><TopPicks mode={mode} onAdd={add} /><Reservation /><Testimonials /><Locations onOrder={() => setOrderOpen(true)} /></main><Footer onOrder={() => setOrderOpen(true)} /><button className="pill floating-order" onClick={() => setOrderOpen(true)} aria-haspopup="dialog">Order Now <span className="order-count" key={count} aria-label={count ? `${count} items in order` : undefined}>{count || '+'}</span></button><OrderDrawer open={orderOpen} onClose={() => setOrderOpen(false)} cart={cart} onChange={change} onAdd={item => add(item, false)} picks={mode === 'pizza' ? pizzaPicks : burgerPicks} /></>;
 }

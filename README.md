@@ -22,6 +22,7 @@ During local preparation, `node_modules` is an ignored Windows junction to the e
 - Menu prices and top-pick ordering buttons add the selected size to the order drawer. Pickup/delivery, quantities and totals update locally. Escape, close and backdrop dismissal work through a native dialog.
 - The reservation form validates required fields, email, phone, service hours and a future date/time. Confirmation is explicitly a local preview.
 - Offers can be scrolled or moved with arrow controls; the page respects reduced motion.
+- The reference choreography includes a pinned hero, diagonal slice pull, opposing scroll-driven headline rows, ingredient parallax, a travelling tilted-photo strip, staggered menu prices and products, and form/testimonial entrances. Offscreen strips pause; scroll work is batched into one frame only when needed. Reduced motion removes the pinning and choreography while keeping all content and controls available.
 
 **There is no checkout, payment processing, real ordering or reservation service.** Neither form sends messages or personal information. Contact information and promotional content are reproduced as part of the reference design, not verified business details.
 
