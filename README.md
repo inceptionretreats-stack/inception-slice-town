@@ -20,6 +20,8 @@ During local preparation, `node_modules` is an ignored Windows junction to the e
 - Pizza/burger mode changes the hero, full menu and top picks. Burger copy and the alternate burger photograph extend the pizza-only video reference.
 - Floating navigation and the mobile menu reach the matching page sections.
 - Menu prices and top-pick ordering buttons add the selected size to the order drawer. Pickup/delivery, quantities and totals update locally. Escape, close and backdrop dismissal work through a native dialog.
+- Cart selections persist in versioned browser storage. Stored entries are checked against the current menu, duplicate entries are merged, and quantities are capped at 99. Invalid or unavailable storage falls back to an empty, usable order preview.
+- The order dialog is named for assistive technology and locks page scrolling while open. Tall-tablet food sizing and short-landscape hero height keep the focal artwork and header visible.
 - The reservation form validates required fields, email, phone, service hours and a future date/time. Confirmation is explicitly a local preview.
 - Offers can be scrolled or moved with arrow controls; the page respects reduced motion.
 - The reference choreography includes a pinned hero, diagonal slice pull, opposing scroll-driven headline rows, ingredient parallax, a travelling tilted-photo strip, staggered menu prices and products, and form/testimonial entrances. Offscreen strips pause; scroll work is batched into one frame only when needed. Reduced motion removes the pinning and choreography while keeping all content and controls available.

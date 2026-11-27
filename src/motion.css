@@ -72,3 +72,7 @@
 }
 @media(max-width:760px) and (prefers-reduced-motion:reduce){.hero{height:90svh;min-height:620px;max-height:900px}.hero-copy span:first-child{transform:translateX(8%)}.hero-copy span:last-child{transform:translateX(-3%)}}
 @media(max-width:360px) and (prefers-reduced-motion:reduce){.hero{min-height:570px}}
+/* Keep the focal food inside tall tablets and short landscape viewports. */
+@media(min-width:761px){.hero-art{width:min(220svh,245vw)}}
+@media(min-width:761px) and (max-width:1100px){.brand{transform:none;width:76px}}
+@media(min-width:761px) and (max-height:600px){.hero,.hero-stage{min-height:0}}

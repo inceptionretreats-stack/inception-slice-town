@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { burgerGroups, burgerPicks, money, pizzaGroups, pizzaPicks } from './menu.js';
 import { useHeroMotion, useReferenceMotion } from './useReferenceMotion.js';
+import { MAX_QUANTITY, readCart, saveCart } from './cart.js';
 
 const asset = name => `/assets/${name}`;
 const galleryAlts = ['Friends sharing a pizza', 'A night out with pizza and friends', 'Fresh pizza ready to share', 'A golden cheese pull', 'Pizza straight from the oven', 'Good times around the table'];
@@ -25,13 +26,13 @@ function Header({ mode, onMode }) {
     document.getElementById('home').scrollIntoView();
   }
   return <header className="site-header">
-    <div className="mode-switch" aria-label="Choose your menu">
+    <div className="mode-switch" role="group" aria-label="Choose your menu">
       <button className={`pill ${mode === 'pizza' ? 'selected' : ''}`} aria-pressed={mode === 'pizza'} onClick={() => changeMode('pizza')}>Home Pizza</button>
       <button className={`pill ${mode === 'burger' ? 'selected' : ''}`} aria-pressed={mode === 'burger'} onClick={() => changeMode('burger')}>Home Burger</button>
     </div>
     <a href="#home" className="brand" aria-label="Slice Town home" onClick={() => setMenuOpen(false)}><img src={asset('logo.svg')} alt="Slice Town" width="100" height="100" /></a>
     <button className="mobile-menu pill" aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen} aria-controls="site-nav" onClick={() => setMenuOpen(value => !value)}><span aria-hidden="true">{menuOpen ? '×' : '☰'}</span></button>
-    <nav id="site-nav" className={`site-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Main navigation">
+    <nav id="site-nav" className={`site-nav ${menuOpen ? 'is-open' : ''}`} aria-label="Main navigation" onKeyDown={event => { if (event.key === 'Escape') { setMenuOpen(false); document.querySelector('.mobile-menu')?.focus(); } }}>
       {[['about-us', 'About us'], ['menu', 'Menu'], ['reservation', 'Reservation']].map(([id, label]) => <a key={id} href={`#${id}`} className={`pill ${active === id ? 'selected' : ''}`} onClick={() => setMenuOpen(false)}>{label}</a>)}
     </nav>
   </header>;
@@ -71,7 +72,7 @@ function MenuGroup({ group, onAdd }) {
     <div className="menu-group-heading"><h3>{group.kind && <span className={`food-dot ${group.kind}`} aria-hidden="true" />}{group.title}</h3><div className="price-labels">{twoSizes ? <><span>Regular</span><span>Large</span></> : <span>Price</span>}</div></div>
     {group.items.map(([name, description, regular, large]) => <div className="menu-item" key={name}>
       <div className="menu-item-copy"><h4>{name}</h4><p>{description}</p></div>
-      <div className="menu-prices"><button aria-label={`Add ${name}${large ? ', regular' : ''} for ${money(regular)}`} onClick={() => onAdd({ name, price: regular, size: large ? 'Regular' : 'One portion' })}>{money(regular)}</button>{large !== undefined && <button aria-label={`Add ${name}, large for ${money(large)}`} onClick={() => onAdd({ name, price: large, size: 'Large' })}>{money(large)}</button>}</div>
+      <div className="menu-prices"><button aria-label={`Add ${name}${large ? ', regular' : ''} for ${money(regular)}`} onClick={event => onAdd({ name, price: regular, size: large ? 'Regular' : 'One portion' }, event.currentTarget)}>{money(regular)}</button>{large !== undefined && <button aria-label={`Add ${name}, large for ${money(large)}`} onClick={event => onAdd({ name, price: large, size: 'Large' }, event.currentTarget)}>{money(large)}</button>}</div>
     </div>)}
   </section>;
 }
@@ -91,8 +92,8 @@ function FullMenu({ mode, onAdd }) {
 function TopPick({ item, onAdd }) {
   const [size, setSize] = useState(0);
   return <article className="top-pick">
-    <div className="pick-image"><img src={asset(item.image)} alt={item.name} loading="lazy" width="550" height="550" />{item.hot && <span className="hot-stamp">Hot</span>}<button className="pill pick-order" onClick={() => onAdd({ name: item.name, price: item.prices[size], size: size === 0 ? 'Regular' : 'Large' })}>Order now <span aria-hidden="true">+</span></button></div>
-    <h3>{item.name}</h3><div className="size-choices" aria-label={`${item.name} size`}>{item.prices.map((price, index) => <button key={index} aria-pressed={size === index} onClick={() => setSize(index)}><span>{index === 0 ? 'R' : 'L'}</span> - {money(price)}</button>)}</div>
+    <div className="pick-image"><img src={asset(item.image)} alt={item.name} loading="lazy" width="550" height="550" />{item.hot && <span className="hot-stamp">Hot</span>}<button className="pill pick-order" onClick={event => onAdd({ name: item.name, price: item.prices[size], size: size === 0 ? 'Regular' : 'Large' }, event.currentTarget)}>Order now <span aria-hidden="true">+</span></button></div>
+    <h3>{item.name}</h3><div className="size-choices" role="group" aria-label={`${item.name} size`}>{item.prices.map((price, index) => <button key={index} aria-pressed={size === index} onClick={() => setSize(index)}><span>{index === 0 ? 'R' : 'L'}</span> - {money(price)}</button>)}</div>
   </article>;
 }
 
@@ -124,8 +125,11 @@ function Reservation() {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
     if (values.name.trim().length < 2) { setError('Please enter your full name.'); form.current.elements.name.focus(); return; }
-    if (!/^[+()0-9 .-]{7,20}$/.test(values.phone)) { setError('Please enter a valid phone number, including an area code.'); form.current.elements.phone.focus(); return; }
-    if (new Date(`${values.date}T${values.time}`) <= new Date()) { setError('Please choose a future date and time.'); form.current.elements.date.focus(); return; }
+    const phoneDigits = values.phone.replace(/\D/g, '');
+    if (!/^[+()0-9 .-]{7,25}$/.test(values.phone) || phoneDigits.length < 7 || phoneDigits.length > 15) { setError('Please enter a valid phone number with 7 to 15 digits, including an area code.'); form.current.elements.phone.focus(); return; }
+    if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(values.time) || values.time < '11:00' || values.time > '22:30') { setError('Please choose a time between 11:00 AM and 10:30 PM.'); form.current.elements.time.focus(); return; }
+    const requestedDate = new Date(`${values.date}T${values.time}`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(values.date) || Number.isNaN(requestedDate.getTime()) || requestedDate <= new Date()) { setError('Please choose a future date and time.'); form.current.elements.date.focus(); return; }
     setError('');
     setConfirmation(values);
   }
@@ -136,7 +140,7 @@ function Reservation() {
         {confirmation ? <div className="reservation-success" role="status"><span className="success-mark" aria-hidden="true">✓</span><h3>A little taste of what’s next.</h3><p>Table request preview for <strong>{confirmation.name}</strong>: {confirmation.guests} {Number(confirmation.guests) === 1 ? 'guest' : 'guests'} on {new Date(`${confirmation.date}T12:00:00`).toLocaleDateString('en-US', { dateStyle: 'long' })} at {confirmation.time}.</p><p className="demo-note">This is a local demo. No reservation has been sent or confirmed, and no message has been sent.</p><button type="button" className="pill selected" onClick={() => { setConfirmation(null); requestAnimationFrame(() => form.current.elements.name?.focus()); }}>Make another preview</button></div>
           : <><div className="form-grid">
             <label>Full Name*<input name="name" autoComplete="name" placeholder="John Smith" required minLength="2" maxLength="70" /></label>
-            <label>Phone number*<input name="phone" type="tel" autoComplete="tel" placeholder="(310) 555-1234" title="Enter 7 to 20 phone-number characters" required /></label>
+            <label>Phone number*<input name="phone" type="tel" autoComplete="tel" placeholder="(310) 555-1234" title="Enter a phone number with 7 to 15 digits" minLength="7" maxLength="25" required /></label>
             <label>Email address*<input name="email" type="email" autoComplete="email" placeholder="john.smith@email.com" required /></label>
             <label>Number of guests*<select name="guests" defaultValue="4">{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1}>{index + 1} {index === 0 ? 'guest' : 'guests'}</option>)}</select></label>
             <label>Date*<input name="date" type="date" required min={localDate()} /></label>
@@ -175,17 +179,35 @@ function Footer({ onOrder }) {
   </footer>;
 }
 
-function OrderDrawer({ open, onClose, cart, onChange, onAdd, picks }) {
+function OrderDrawer({ open, onClose, cart, onChange, onAdd, picks, returnFocus }) {
   const dialog = useRef(null);
   const [fulfilment, setFulfilment] = useState('Pickup');
   const [ready, setReady] = useState(false);
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  useEffect(() => { if (open && !dialog.current.open) { setReady(false); dialog.current.showModal(); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) dialog.current.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }], { duration: 500, easing: 'cubic-bezier(.22,1,.36,1)' }); } else if (!open && dialog.current.open) dialog.current.close(); }, [open]);
+  useEffect(() => { if (open && !dialog.current.open) { setReady(false); dialog.current.showModal(); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) dialog.current.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }], { duration: 500, easing: 'cubic-bezier(.22,1,.36,1)' }); } else if (!open) { if (dialog.current.open) dialog.current.close(); if (returnFocus.current?.isConnected) returnFocus.current.focus({ preventScroll: true }); } }, [open, returnFocus]);
+  useEffect(() => {
+    if (!open) return;
+    const bodyOverflow = document.body.style.overflow;
+    const pageOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = pageOverflow;
+    };
+  }, [open]);
   function change(item, delta) { setReady(false); onChange(item, delta); }
-  return <dialog ref={dialog} className="order-drawer" onCancel={onClose} onClose={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="drawer-content"><header className="drawer-header"><div><p>Hot slices. Big bites.</p><h2>Your order</h2></div><button className="icon-button" aria-label="Close order" onClick={onClose}>×</button></header>
-    <div className="fulfilment" aria-label="Order type">{['Pickup', 'Delivery'].map(type => <button key={type} aria-pressed={fulfilment === type} onClick={() => { setFulfilment(type); setReady(false); }}>{type}</button>)}</div>
-    <p className="drawer-note">Build a {fulfilment.toLowerCase()} preview. No payment or real order will be placed.</p>
-    {cart.length ? <ul className="cart-items">{cart.map(item => <li key={item.key}><div><h3>{item.name}</h3><p>{item.size} · {money(item.price)}</p></div><div className="quantity"><button aria-label={`Remove one ${item.name}, ${item.size}`} onClick={() => change(item, -1)}>−</button><span aria-label={`Quantity ${item.quantity}`}>{item.quantity}</span><button aria-label={`Add one ${item.name}, ${item.size}`} onClick={() => change(item, 1)}>+</button></div><strong>{money(item.price * item.quantity)}</strong></li>)}</ul> : <div className="empty-cart"><h3>A little hungry?</h3><p>Your order is empty. Start with a town favourite.</p></div>}
+  function trapFocus(event) {
+    if (event.key !== 'Tab') return;
+    const controls = [...dialog.current.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')].filter(node => node.getClientRects().length);
+    const first = controls[0], last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  }
+  return <dialog ref={dialog} className="order-drawer" aria-labelledby="order-title" aria-describedby="order-disclosure" onKeyDown={trapFocus} onCancel={onClose} onClose={onClose} onClick={event => { if (event.target === event.currentTarget) onClose(); }}><div className="drawer-content"><header className="drawer-header"><div><p>Hot slices. Big bites.</p><h2 id="order-title">Your order</h2></div><button className="icon-button" aria-label="Close order" onClick={onClose}>×</button></header>
+    <div className="fulfilment" role="group" aria-label="Order type">{['Pickup', 'Delivery'].map(type => <button key={type} aria-pressed={fulfilment === type} onClick={() => { setFulfilment(type); setReady(false); }}>{type}</button>)}</div>
+    <p className="drawer-note" id="order-disclosure">Build a {fulfilment.toLowerCase()} preview. No payment or real order will be placed.</p>
+    {cart.length ? <ul className="cart-items">{cart.map(item => <li key={item.key}><div><h3>{item.name}</h3><p>{item.size} · {money(item.price)}</p></div><div className="quantity"><button aria-label={`Remove one ${item.name}, ${item.size}`} onClick={() => change(item, -1)}>−</button><span aria-label={`Quantity ${item.quantity}`}>{item.quantity}</span><button aria-label={`Add one ${item.name}, ${item.size}`} disabled={item.quantity >= MAX_QUANTITY} onClick={() => change(item, 1)}>+</button></div><strong>{money(item.price * item.quantity)}</strong></li>)}</ul> : <div className="empty-cart"><h3>A little hungry?</h3><p>Your order is empty. Start with a town favourite.</p></div>}
     <div className="quick-add"><h3>Something delicious</h3>{picks.map(item => <button key={item.name} onClick={() => { setReady(false); onAdd({ name: item.name, size: 'Regular', price: item.prices[0] }); }}><img src={asset(item.image)} alt="" width="56" height="56" /><span>{item.name}<small>{money(item.prices[0])}</small></span><b aria-hidden="true">+</b><span className="sr-only">Add to order</span></button>)}</div>
     <div className="cart-total"><span>Total</span><strong>{money(total)}</strong></div>
     {ready ? <div role="status" className="order-success"><h3>Your order preview is ready.</h3><p>{fulfilment} · {cart.reduce((sum, item) => sum + item.quantity, 0)} items · {money(total)}</p><p>This demo has not sent an order or taken payment.</p></div> : <button className="pill selected checkout-button" disabled={!cart.length} onClick={() => setReady(true)}>Preview order <Arrow /></button>}
@@ -195,16 +217,19 @@ function OrderDrawer({ open, onClose, cart, onChange, onAdd, picks }) {
 export default function App() {
   const [mode, setMode] = useState('pizza');
   useReferenceMotion(mode);
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(readCart);
+  useEffect(() => { saveCart(cart); }, [cart]);
   const [orderOpen, setOrderOpen] = useState(false);
-  function add(item, reveal = true) {
+  const orderTrigger = useRef(null);
+  function openOrder(event) { orderTrigger.current = event.currentTarget; setOrderOpen(true); }
+  function add(item, reveal = true, trigger = null) {
     const key = `${item.name}-${item.size}`;
-    setCart(current => current.some(entry => entry.key === key) ? current.map(entry => entry.key === key ? { ...entry, quantity: entry.quantity + 1 } : entry) : [...current, { ...item, key, quantity: 1 }]);
-    if (reveal) setOrderOpen(true);
+    setCart(current => current.some(entry => entry.key === key) ? current.map(entry => entry.key === key ? { ...entry, quantity: Math.min(MAX_QUANTITY, entry.quantity + 1) } : entry) : [...current, { ...item, key, quantity: 1 }]);
+    if (reveal) { orderTrigger.current = trigger || document.activeElement; setOrderOpen(true); }
   }
   function change(item, delta) {
-    setCart(current => current.map(entry => entry.key === item.key ? { ...entry, quantity: entry.quantity + delta } : entry).filter(entry => entry.quantity > 0));
+    setCart(current => current.map(entry => entry.key === item.key ? { ...entry, quantity: Math.min(MAX_QUANTITY, entry.quantity + delta) } : entry).filter(entry => entry.quantity > 0));
   }
   const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-  return <><a className="skip-link" href="#menu">Skip to menu</a><Header mode={mode} onMode={setMode} /><main><Hero mode={mode} /><Story mode={mode} onOrder={() => setOrderOpen(true)} /><FullMenu mode={mode} onAdd={add} /><TopPicks mode={mode} onAdd={add} /><Reservation /><Testimonials /><Locations onOrder={() => setOrderOpen(true)} /></main><Footer onOrder={() => setOrderOpen(true)} /><button className="pill floating-order" onClick={() => setOrderOpen(true)} aria-haspopup="dialog">Order Now <span className="order-count" key={count} aria-label={count ? `${count} items in order` : undefined}>{count || '+'}</span></button><OrderDrawer open={orderOpen} onClose={() => setOrderOpen(false)} cart={cart} onChange={change} onAdd={item => add(item, false)} picks={mode === 'pizza' ? pizzaPicks : burgerPicks} /></>;
+  return <><a className="skip-link" href="#menu">Skip to menu</a><Header mode={mode} onMode={setMode} /><main><Hero mode={mode} /><Story mode={mode} onOrder={openOrder} /><FullMenu mode={mode} onAdd={(item, trigger) => add(item, true, trigger)} /><TopPicks mode={mode} onAdd={(item, trigger) => add(item, true, trigger)} /><Reservation /><Testimonials /><Locations onOrder={openOrder} /></main><Footer onOrder={openOrder} /><button className="pill floating-order" onClick={openOrder} aria-haspopup="dialog">Order Now <span className="order-count" key={count} aria-label={count ? `${count} items in order` : undefined}>{count || '+'}</span></button><OrderDrawer returnFocus={orderTrigger} open={orderOpen} onClose={() => setOrderOpen(false)} cart={cart} onChange={change} onAdd={item => add(item, false)} picks={mode === 'pizza' ? pizzaPicks : burgerPicks} /></>;
 }
